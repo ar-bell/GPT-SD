@@ -18,7 +18,7 @@ def login():
     if request.method == 'POST':
         email = request.form.get('email')
         password = request.form.get('password')
-        
+                
         if email and password:
             session['user'] = email
             return redirect(url_for('home'))
