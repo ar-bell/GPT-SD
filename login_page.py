@@ -21,7 +21,7 @@ class LoginForm(FlaskForm):
     submit = SubmitField("Sign In")
 
 # Routes
-@app.route("/login_page", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
