@@ -1,77 +1,42 @@
-from flask import Flask, jsonify, render_template, redirect, request, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Email
-from werkzeug.security import check_password_hash
+# app.py
 import os
 from dotenv import load_dotenv
-
-from deck_database import Card, Deck
-from home_page import get_current_user
+from flask import (
+    Flask, render_template, redirect, url_for,
+    flash, session, request
+)
+from werkzeug.security import check_password_hash
+from flask_wtf import FlaskForm
+from wtforms import (
+    StringField, PasswordField, SubmitField,
+    SelectField, TextAreaField
+)
+from wtforms.validators import DataRequired, Email
+from deck_database import db, User, Deck, Card
 
 load_dotenv()
-
-# Setup
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
+    "DATABASE_URL", "sqlite:///deck.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
+db.init_app(app)
 
-# Flask-Login
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-
-# User Model
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-# Login Form
 class LoginForm(FlaskForm):
-    email = StringField("Email", validators=[DataRequired(), Email()])
+    email    = StringField("Email",    validators=[DataRequired(), Email()])
     password = PasswordField("Password", validators=[DataRequired()])
-    submit = SubmitField("Sign In")
+    submit   = SubmitField("Sign In")
 
-# Routes
-@app.route("/", methods=["GET"])
-@app.route("/home", methods=["GET"])
-@login_required
-def home():
-    return render_template("home.html")
+class CardForm(FlaskForm):
+    deck_id    = SelectField("Deck", coerce=int, validators=[DataRequired()])
+    term       = StringField("Term",       validators=[DataRequired()])
+    definition = TextAreaField("Definition", validators=[DataRequired()])
+    submit     = SubmitField("Create Card")
 
-@app.route("/search")
-def search():
-    user = get_current_user()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
-
-    query = request.args.get("query", "").strip()
-    if len(query) < 2:
-        return jsonify({"error": "Query too short"}), 400
-
-    term = f"%{query}%"
-    decks = Deck.query.filter(
-        Deck.owner_id == user.id,
-        (Deck.name.ilike(term) | Deck.description.ilike(term))
-    ).all()
-    cards = Card.query.join(Deck).filter(
-        Deck.owner_id == user.id,
-        (Card.term.ilike(term) | Card.definition.ilike(term))
-    ).all()
-
-    return jsonify({
-        "decks": [{"id": d.id, "name": d.name} for d in decks],
-        "cards": [{"id": c.id, "term": c.term} for c in cards]
-    })
+def get_current_user():
+    email = session.get("user_email")
+    return User.query.filter_by(email=email).first() if email else None
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -79,20 +44,67 @@ def login():
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
         if user and check_password_hash(user.password_hash, form.password.data):
-            login_user(user)
+            session["user_email"] = user.email
             flash("Logged in successfully!", "success")
             return redirect(url_for("home"))
         flash("Invalid credentials", "danger")
     return render_template("login.html", form=form)
 
 @app.route("/logout")
-@login_required
 def logout():
-    logout_user()
-    flash("Logged out successfully", "info")
+    session.pop("user_email", None)
+    flash("Logged out", "info")
     return redirect(url_for("login"))
+
+@app.route("/", methods=["GET"])
+@app.route("/home", methods=["GET"])
+def home():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+    decks_data = []
+    for d in Deck.query.filter_by(owner_id=user.id):
+        decks_data.append({
+            "id": d.id,
+            "name": d.name,
+            "cards": len(d.cards),
+            "mastery": 0  # placeholder
+        })
+    return render_template("home.html", user=user.email, decks=decks_data)
+
+@app.route("/cards/new", methods=["GET", "POST"])
+def create_card():
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+
+    form = CardForm()
+    form.deck_id.choices = [
+        (d.id, d.name) for d in Deck.query.filter_by(owner_id=user.id)
+    ]
+
+    if form.validate_on_submit():
+        card = Card(
+            deck_id    = form.deck_id.data,
+            term       = form.term.data,
+            definition = form.definition.data
+        )
+        db.session.add(card)
+        db.session.commit()
+        flash(f"Card '{card.term}' created!", "success")
+        return redirect(url_for("home"))
+
+    return render_template("create_card.html", form=form)
+
+@app.route("/decks/<int:deck_id>/study", methods=["GET"])
+def study_deck(deck_id):
+    user = get_current_user()
+    if not user:
+        return redirect(url_for("login"))
+    deck = Deck.query.filter_by(id=deck_id, owner_id=user.id).first_or_404()
+    return render_template("study.html", deck=deck, cards=deck.cards)
 
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0", port=8000)

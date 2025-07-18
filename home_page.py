@@ -1,72 +1,75 @@
-from flask import Flask, request, session, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, session, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY")
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-from deck_database import User, Deck, Card, StudySession
+class User(db.Model):
+    __tablename__ = "users"
+    id            = db.Column(db.Integer, primary_key=True)
+    email         = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    decks         = db.relationship("Deck", back_populates="owner")
+
+class Deck(db.Model):
+    __tablename__ = "decks"
+    id          = db.Column(db.Integer, primary_key=True)
+    name        = db.Column(db.String, nullable=False)
+    owner_id    = db.Column(db.Integer, db.ForeignKey("users.id"))
+    owner       = db.relationship("User", back_populates="decks")
+    cards       = db.relationship("Card", back_populates="deck")
+
+class Card(db.Model):
+    __tablename__ = "cards"
+    id       = db.Column(db.Integer, primary_key=True)
+    term     = db.Column(db.String, nullable=False)
+    deck_id  = db.Column(db.Integer, db.ForeignKey("decks.id"))
+    deck     = db.relationship("Deck", back_populates="cards")
+
+class StudySession(db.Model):
+    __tablename__ = "study_sessions"
+    id      = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    correct = db.Column(db.Boolean)
 
 def get_current_user():
-    user_email = session.get("user_email")
-    if not user_email:
-        return None
-    return User.query.filter_by(email=user_email).first()
+    email = session.get("user_email")
+    return User.query.filter_by(email=email).first() if email else None
 
 @app.route("/")
-def home():
-    return "Welcome to GPT.SD Flashcards!"
+def landing():
+    return render_template("landing.html")
 
-@app.route("/home")
-def dashboard():
-    user = get_current_user()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
+@app.route("/login", methods=["GET","POST"])
+def login():
+    pass
 
-    total_decks = Deck.query.filter_by(owner_id=user.id).count()
-    total_cards = Card.query.join(Deck).filter(Deck.owner_id == user.id).count()
-
-    sessions = StudySession.query.filter_by(user_id=user.id).all()
-    if sessions:
-        correct = sum(1 for s in sessions if s.correct)
-        accuracy_rate = round(correct / len(sessions) * 100, 1)
-    else:
-        accuracy_rate = 0.0
-
+@app.route("/dashboard")
+def api_dashboard():
+    total_decks = Deck.query.filter_by(owner_id=current_user.id).count()
+    total_cards = Card.query.join(Deck).filter(Deck.owner_id==current_user.id).count()
+    sessions   = StudySession.query.filter_by(user_id=current_user.id).all()
+    accuracy   = (sum(1 for s in sessions if s.correct)/ len(sessions)*100) if sessions else 0
     return jsonify({
         "total_decks": total_decks,
         "total_cards": total_cards,
-        "accuracy_rate": accuracy_rate,
+        "accuracy_rate": round(accuracy,1)
     })
 
 @app.route("/search")
 def search():
-    user = get_current_user()
-    if not user:
-        return jsonify({"error": "Unauthorized"}), 401
+    pass
 
-    query = request.args.get("query", "").strip()
-    if len(query) < 2:
-        return jsonify({"error": "Query too short"}), 400
+if __name__=="__main__":
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True)
 
-    term = f"%{query}%"
-    decks = Deck.query.filter(
-        Deck.owner_id == user.id,
-        (Deck.name.ilike(term) | Deck.description.ilike(term))
-    ).all()
-    cards = Card.query.join(Deck).filter(
-        Deck.owner_id == user.id,
-        (Card.term.ilike(term) | Card.definition.ilike(term))
-    ).all()
-
-    return jsonify({
-        "decks": [{"id": d.id, "name": d.name} for d in decks],
-        "cards": [{"id": c.id, "term": c.term} for c in cards]
-    })
-
-if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
