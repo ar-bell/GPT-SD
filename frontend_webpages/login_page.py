@@ -75,11 +75,30 @@ def study(deck_id):
     
     return render_template('study.html', deck_id=deck_id, flashcards=flashcards)
 
+@app.route('/createcard', methods=['GET', 'POST'])
+def createcard():
+    'Card deck page'
+    if request.method == 'POST':
+        termInput = request.form.get('term', '').strip()
+        defInput = request.form.get('definition', '').strip()
+
+
+        if not termInput and not defInput:
+            flash('Both term and definition are required.', 'error')
+            return render_template('createcard.html', termInput=term, defInput=definition)
+
+    #TODO: save your new deck/card here
+
+        return redirect(url_for('home'))
+     #GET   
+    return render_template('createcard.html')
+
 @app.route('/logout')
 def logout():
     """Logout user"""
     session.pop('user', None)
     return redirect(url_for('login'))
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

@@ -1,0 +1,58 @@
+{# templates/createcard.html #}
+{% extends "base.html" %}
+{% block title %}GPT.SD – Create New Deck{% endblock %}
+
+{% block content %}
+<div class="container active auth-container" style="display: flex; justify-content: center; align-items: center; min-height: 100vh;">
+  <div class="auth-card">
+    <div class="logo">
+      <h1>Create New Deck</h1>
+    </div>
+
+    <form method="POST" action="{{ url_for('createcard') }}">
+      <div class="form-group">
+        <label class="form-label" for="termInput">Term Input</label>
+        <input
+          type="text"
+          class="form-input"
+          id="termInput"
+          name="term"
+          placeholder="Enter the Term"
+          value="{{ term|default('') }}">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="definitionInput">Description</label>
+        <textarea
+          class="form-input"
+          id="definitionInput"
+          name="definition"
+          placeholder="Enter a short description"
+          rows="3">{{ definition|default('') }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Cover Image</label>
+        <div id="imagePreview"
+             class="border rounded d-flex align-items-center justify-content-center"
+             style="height: 200px; background: var(--surface-light); overflow: hidden;">
+          {% if image_url %}
+            <img src="{{ image_url }}" alt="Deck cover" class="img-fluid" style="max-height: 100%; object-fit: contain;">
+          {% else %}
+            <span class="text-muted">No image generated yet</span>
+          {% endif %}
+        </div>
+        <button type="submit"
+                name="action"
+                value="generate_image"
+                class="btn btn-outline-secondary btn-block mt-2">
+          Click to Generate Image
+        </button>
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancel</a>
+    </form>
+  </div>
+</div>
+{% endblock %}

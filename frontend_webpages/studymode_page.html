@@ -1,3 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Study Mode - Deck {{ deck_id }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Study Mode - Deck {{ deck_id }}</h2>
+
+    <div class="row">
+        {% for card in flashcards %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if card.image %}
+                <img src="{{ card.image }}" class="card-img-top" alt="Image for {{ card.term }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ card.term }}</h5>
+                    <p class="card-text">{{ card.definition }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+
+
+<!--
 <div class="card" style="width: 18rem;">
   <div class="card-body">
     <h5 class="card-title">Card title</h5>
@@ -7,3 +36,4 @@
     <a href="#" class="card-link">Another link</a>
   </div>
 </div>
+-->
