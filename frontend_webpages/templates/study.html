@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}GPT.SD - Study Mode{% endblock %}
+
+{% block content %}
+<div class="container active" id="studyScreen">
+    <div class="study-container">
+        <div class="study-header">
+            <div>
+                <h2>Study Session</h2>
+                <p style="color: var(--text-secondary);">Card 1 of {{ flashcards|length }}</p>
+            </div>
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Exit Study</a>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+            <div class="flashcard-face">
+                <div class="flashcard-content">
+                    <h3>{{ flashcards[0].term }}</h3>
+                </div>
+                <div class="flashcard-hint">Click to reveal answer</div>
+            </div>
+            <div class="flashcard-face flashcard-back">
+                <div class="flashcard-content">
+                    <p>{{ flashcards[0].definition }}</p>
+                </div>
+                <div class="flashcard-hint">Click to flip back</div>
+            </div>
+        </div>
+
+        <div class="study-controls">
+            <button class="control-btn control-btn-prev">Previous</button>
+            <button class="control-btn control-btn-shuffle">Shuffle</button>
+            <button class="control-btn control-btn-next">Next</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
