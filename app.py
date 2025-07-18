@@ -1,10 +1,9 @@
-from flask import Flask, render_template, redirect, url_for, flash, session, request, jsonify
+from flask import Flask, render_template, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email
 from werkzeug.security import check_password_hash
-from datetime import datetime, timedelta
 import os
 
 # Initialize app and config
@@ -20,9 +19,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-# Add your Deck, Card, and StudySession models here as needed
 
 class LoginForm(FlaskForm):
     email = StringField("Email", validators=[DataRequired(), Email()])
@@ -31,9 +27,11 @@ class LoginForm(FlaskForm):
 
 @app.route("/", methods=["GET"])
 def home():
+    if "user_email" not in session:
+        return redirect(url_for("login"))
     return render_template("home.html")
 
-@app.route("/login_page", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     form = LoginForm()
     if form.validate_on_submit():
