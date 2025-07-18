@@ -16,7 +16,7 @@ load_dotenv()
 # Setup
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URL"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
