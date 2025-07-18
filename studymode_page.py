@@ -1,6 +1,6 @@
-from flask import request, jsonify
+from flask import jsonify
 from flask_login import current_user, login_required
-from deck_database import db, Deck, Card
+from deck_database import Deck, Card
 from app import app
 
 @app.route('/api/decks/<int:deck_id>/cards', methods=['GET'])
