@@ -1,13 +1,15 @@
-from flask import Blueprint, request, session, jsonify
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from datetime import datetime, timedelta
+from flask import Flask, request, session, jsonify
+from flask_sqlalchemy import SQLAlchemy
+import os
 
-from deck_database import db, User, Deck, Card, StudySession
+app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-home_page = Blueprint("home_page", __name__)
+db = SQLAlchemy(app)
 
-# Helper function to get current user
+from deck_database import User, Deck, Card, StudySession
 
 def get_current_user():
     user_email = session.get("user_email")
@@ -15,11 +17,11 @@ def get_current_user():
         return None
     return User.query.filter_by(email=user_email).first()
 
-@home_page.route("/")
+@app.route("/")
 def home():
     return "Welcome to GPT.SD Flashcards!"
 
-@home_page.route("/dashboard")
+@app.route("/home")
 def dashboard():
     user = get_current_user()
     if not user:
@@ -31,10 +33,9 @@ def dashboard():
     sessions = StudySession.query.filter_by(user_id=user.id).all()
     if sessions:
         correct = sum(1 for s in sessions if s.correct)
-        accuracy_rate = correct / len(sessions)
+        accuracy_rate = round(correct / len(sessions) * 100, 1)
     else:
         accuracy_rate = 0.0
-
 
     return jsonify({
         "total_decks": total_decks,
@@ -42,29 +43,30 @@ def dashboard():
         "accuracy_rate": accuracy_rate,
     })
 
-@home_page.route("/search")
+@app.route("/search")
 def search():
     user = get_current_user()
     if not user:
         return jsonify({"error": "Unauthorized"}), 401
 
-    query = request.args.get("query", "")
-    if len(query.strip()) < 2:
+    query = request.args.get("query", "").strip()
+    if len(query) < 2:
         return jsonify({"error": "Query too short"}), 400
 
-    term = f"%{query.strip()}%"
-
+    term = f"%{query}%"
     decks = Deck.query.filter(
         Deck.owner_id == user.id,
         (Deck.name.ilike(term) | Deck.description.ilike(term))
     ).all()
-
     cards = Card.query.join(Deck).filter(
         Deck.owner_id == user.id,
         (Card.term.ilike(term) | Card.definition.ilike(term))
     ).all()
 
     return jsonify({
-        "decks": [deck.name for deck in decks],
-        "cards": [card.term for card in cards]
+        "decks": [{"id": d.id, "name": d.name} for d in decks],
+        "cards": [{"id": c.id, "term": c.term} for c in cards]
     })
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5000)
