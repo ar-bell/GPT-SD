@@ -1,36 +1,38 @@
-
 # login_page.py
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import os
-#TODO: NEED TO IMPORT DATABASE
 
+
+# Test credentials
+TEST_USER_EMAIL = "test@example.com"
+TEST_USER_PASSWORD = "password123"
 
 app = Flask(__name__)
 app.secret_key = '88443'
 
 decks = [
-        {
-            'id': 1,
-            'name': 'JavaScript Fundamentals',
-            'cards': 45,
-            'mastery': 87,
-            'category': 'programming'
-        },
-        {
-            'id': 2,
-            'name': 'Spanish Vocabulary',
-            'cards': 120,
-            'mastery': 65,
-            'category': 'language'
-        },
-        {
-            'id': 3,
-            'name': 'Data Structures',
-            'cards': 78,
-            'mastery': 92,
-            'category': 'programming'
-        }
-    ]
+    {
+        'id': 1,
+        'name': 'JavaScript Fundamentals',
+        'cards': 45,
+        'mastery': 87,
+        'category': 'programming'
+    },
+    {
+        'id': 2,
+        'name': 'Spanish Vocabulary',
+        'cards': 120,
+        'mastery': 65,
+        'category': 'language'
+    },
+    {
+        'id': 3,
+        'name': 'Data Structures',
+        'cards': 78,
+        'mastery': 92,
+        'category': 'programming'
+    }
+]
 
 # routes
 @app.route('/')
@@ -40,18 +42,19 @@ def index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Login page"""
     if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
+        email = request.form.get('email', '').strip()
+        pwd = request.form.get('password', '').strip()
         
-        if email and password:
-            session['user'] = email
+        if email == TEST_USER_EMAIL and pwd == TEST_USER_PASSWORD:
+            session['user'] = email  # Changed to 'user' to match home() function
+            flash("Logged in successfully!", "success")
             return redirect(url_for('home'))
         else:
-            return render_template('login.html', error='Invalid credentials')
+            flash("Invalid credentials", "danger")
     
-    return render_template('login.html')
+    # GET or failed POST
+    return render_template("login.html")
 
 @app.route('/home')
 def home():
@@ -79,38 +82,42 @@ def study(deck_id):
 
 @app.route('/createcard', methods=['GET', 'POST'])
 def createcard():
-    'Card deck page'
+    """Card deck page"""
+    if 'user' not in session:
+        return redirect(url_for('login'))
+        
     if request.method == 'POST':
         termInput = request.form.get('term', '').strip()
         defInput = request.form.get('definition', '').strip()
-        image_url   = request.form.get('image_url', None)
-
-
-        if not termInput and not defInput:
+        
+        if not termInput or not defInput:  # Fixed: was 'and', should be 'or'
             flash('Both term and definition are required.', 'error')
-            return render_template('createcard.html', termInput=term, defInput=definition)
-
-         # assign a new id
+            return render_template('createcard.html')  # Fixed: removed undefined variables
+        
+        # assign a new id
         new_id = max(d['id'] for d in decks) + 1 if decks else 1
-
+        
         # build the new deck entry
         new_deck = {
-            'id':       new_id,
-            'name':     termInput,
-            'cards':    0,
-            'mastery':  0,
-            'category': ''  # or pull from a form field
+            'id': new_id,
+            'name': termInput,
+            'cards': 0,
+            'mastery': 0,
+            'category': ''
         }
-
+        
         decks.append(new_deck)
+        flash(f"Created new deck: {termInput}", "success")
         return redirect(url_for('home'))
-     #GET   
+    
+    # GET
     return render_template('createcard.html')
 
 @app.route('/logout')
 def logout():
     """Logout user"""
     session.pop('user', None)
+    flash("You have been logged out", "info")
     return redirect(url_for('login'))
 
 
