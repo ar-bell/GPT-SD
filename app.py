@@ -6,14 +6,17 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Email
 from werkzeug.security import check_password_hash
 import os
+from dotenv import load_dotenv
 
 from deck_database import Card, Deck
 from home_page import get_current_user
 
+load_dotenv()
+
 # Setup
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev-secret") # MAKE SURE THIS IS HANDLED
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
+app.secret_key = os.getenv("SECRET_KEY")
+app.config["SQLALCHEMY_DATABASE_URL"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 

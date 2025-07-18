@@ -9,11 +9,11 @@ app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO)
 
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") # REMEMBER TO ADD KEY
-if not GEMINI_API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is required")
+GENAI_KEY = os.getenv("GENAI_KEY")
+if not GENAI_KEY:
+    raise RuntimeError("GENAI_KEY is required")
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GENAI_KEY)
 
 @app.route("/generate-image", methods=["POST"])
 def generate_image():

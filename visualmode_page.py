@@ -4,8 +4,8 @@ import json
 import random
 
 app = Flask(__name__)
-app.secret_key = 'key' # REMEMBER TO SET KEY
-DB_PATH = 'flashcards.db'
+app.secret_key = 'SECRET_KEY'
+DB_PATH = 'deck.db'
 
 def init_visual_db():
     conn = sqlite3.connect(DB_PATH)

@@ -8,7 +8,7 @@ import os
 from deck_database import db, User
 
 app = Flask(__name__)
-app.secret_key = os.getenv("SECRET_KEY", "dev-secret") # take care of this
+app.secret_key = os.getenv("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///deck.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
