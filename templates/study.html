@@ -7,36 +7,284 @@
     <div class="study-container">
         <div class="study-header">
             <div>
-                <h2>Study Session</h2>
-                <p style="color: var(--text-secondary);">Card 1 of {{ flashcards|length }}</p>
+                <h2>{{ deck.name if deck.name else 'Study Session' }}</h2>
+                <p style="color: var(--text-secondary);">Card <span id="currentCard">1</span> of {{ cards|length }}</p>
             </div>
             <a href="{{ url_for('home') }}" class="btn btn-secondary">Exit Study</a>
         </div>
 
         <div class="progress-bar">
-            <div class="progress-fill" style="width: 0%"></div>
+            <div class="progress-fill" style="width: {{ (100 / cards|length) if cards else 0 }}%"></div>
         </div>
 
+        {% if cards %}
         <div class="flashcard" id="flashcard" onclick="flipCard()">
-            <div class="flashcard-face">
+            <div class="flashcard-face" id="front">
+                {% if cards[0].image_url %}
+                <img src="{{ cards[0].image_url }}" alt="{{ cards[0].term }}" class="flashcard-image">
+                {% endif %}
                 <div class="flashcard-content">
-                    <h3>{{ flashcards[0].term }}</h3>
+                    <h3 id="termText">{{ cards[0].term }}</h3>
                 </div>
                 <div class="flashcard-hint">Click to reveal answer</div>
             </div>
-            <div class="flashcard-face flashcard-back">
+            <div class="flashcard-face flashcard-back" id="back">
                 <div class="flashcard-content">
-                    <p>{{ flashcards[0].definition }}</p>
+                    <p id="definitionText">{{ cards[0].definition }}</p>
                 </div>
                 <div class="flashcard-hint">Click to flip back</div>
             </div>
         </div>
 
         <div class="study-controls">
-            <button class="control-btn control-btn-prev">Previous</button>
-            <button class="control-btn control-btn-shuffle">Shuffle</button>
-            <button class="control-btn control-btn-next">Next</button>
+            <button class="control-btn control-btn-prev" onclick="previousCard()">Previous</button>
+            <button class="control-btn control-btn-shuffle" onclick="shuffleCards()">Shuffle</button>
+            <button class="control-btn control-btn-next" onclick="nextCard()">Next</button>
         </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No cards in this deck yet!</p>
+            <a href="{{ url_for('create_card') }}" class="btn btn-primary">Create Cards</a>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<style>
+/* Study mode styles */
+.study-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.study-header {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 24px 30px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--surface-light);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--gradient);
+    transition: width 0.3s ease;
+}
+
+.flashcard {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 60px;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    position: relative;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.flashcard.flipped {
+    transform: rotateY(180deg);
+}
+
+.flashcard-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.flashcard-back {
+    transform: rotateY(180deg);
+}
+
+.flashcard-image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.flashcard-content {
+    font-size: 1.5rem;
+    line-height: 1.6;
+}
+
+.flashcard-content h3 {
+    color: var(--primary);
+    margin-bottom: 10px;
+}
+
+.flashcard-hint {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.study-controls {
+    display: flex;
+    gap: 16px;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.control-btn {
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.control-btn-prev {
+    background: var(--surface-light);
+    color: var(--text-primary);
+}
+
+.control-btn-next {
+    background: var(--primary);
+    color: white;
+}
+
+.control-btn-shuffle {
+    background: var(--secondary);
+    color: white;
+}
+
+.control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px;
+    background: var(--surface);
+    border-radius: 20px;
+}
+
+.empty-state p {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+</style>
+
+<script>
+// Card data passed from Flask
+const cards = {{ cards | tojson }};
+let currentIndex = 0;
+let isFlipped = false;
+
+function updateCard() {
+    if (cards.length === 0) return;
+    
+    const card = cards[currentIndex];
+    document.getElementById('termText').textContent = card.term;
+    document.getElementById('definitionText').textContent = card.definition;
+    
+    // Update image
+    const frontFace = document.getElementById('front');
+    const existingImg = frontFace.querySelector('.flashcard-image');
+    
+    if (card.image_url) {
+        if (existingImg) {
+            existingImg.src = card.image_url;
+            existingImg.alt = card.term;
+        } else {
+            const img = document.createElement('img');
+            img.src = card.image_url;
+            img.alt = card.term;
+            img.className = 'flashcard-image';
+            frontFace.insertBefore(img, frontFace.firstChild);
+        }
+    } else if (existingImg) {
+        existingImg.remove();
+    }
+    
+    // Update progress
+    document.getElementById('currentCard').textContent = currentIndex + 1;
+    const progress = ((currentIndex + 1) / cards.length) * 100;
+    document.querySelector('.progress-fill').style.width = progress + '%';
+    
+    // Reset flip
+    document.getElementById('flashcard').classList.remove('flipped');
+    isFlipped = false;
+}
+
+function flipCard() {
+    const flashcard = document.getElementById('flashcard');
+    flashcard.classList.toggle('flipped');
+    isFlipped = !isFlipped;
+}
+
+function nextCard() {
+    if (currentIndex < cards.length - 1) {
+        currentIndex++;
+        updateCard();
+    } else {
+        alert('You\'ve completed all cards! Great job!');
+    }
+}
+
+function previousCard() {
+    if (currentIndex > 0) {
+        currentIndex--;
+        updateCard();
+    }
+}
+
+function shuffleCards() {
+    // Fisher-Yates shuffle
+    for (let i = cards.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+    }
+    currentIndex = 0;
+    updateCard();
+    
+    // Visual feedback
+    event.target.textContent = 'Shuffled!';
+    setTimeout(() => {
+        event.target.textContent = 'Shuffle';
+    }, 1000);
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (e.key === ' ') {
+        e.preventDefault();
+        flipCard();
+    } else if (e.key === 'ArrowRight') {
+        nextCard();
+    } else if (e.key === 'ArrowLeft') {
+        previousCard();
+    }
+});
+</script>
 {% endblock %}
