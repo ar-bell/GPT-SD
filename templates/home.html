@@ -40,11 +40,12 @@
         </div>
         {% endfor %}
 
-        <div class="deck-card create-deck" onclick="window.location.href='{{ url_for('create_card') }}'">
+        <!-- Create New Deck Card -->
+        <div class="deck-card create-deck" data-toggle="modal" data-target="#createDeckModal" style="cursor: pointer;">
             <div class="create-deck-content">
-                <div class="create-deck-icon">+</div>
-                <h3>Create New Card</h3>
-                <p style="color: var(--text-secondary); margin-top: 8px;">Add AI-powered flashcards</p>
+                <div class="create-deck-icon" onclick="event.stopPropagation(); window.location.href='{{ url_for('create_deck') }}'">+</div>
+                <h3>Create New Deck</h3>
+                <p style="color: var(--text-secondary); margin-top: 8px;">Start building your knowledge</p>
             </div>
         </div>
     </div>

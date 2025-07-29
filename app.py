@@ -24,6 +24,13 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 
+ # Mock deck data for presentation
+decks_data = [
+    {"id": 1, "name": "Biology Basics",    "cards": 3,  "mastery": 100},
+    {"id": 2, "name": "Spanish Vocabulary", "cards": 5,  "mastery": 40},
+    {"id": 3, "name": "Data Structures",    "cards": 15, "mastery": 85},
+]
+
 # Test credentials
 TEST_EMAIL = "test@example.com"
 TEST_PASSWORD = "password123"
@@ -101,52 +108,33 @@ def logout():
 
 @app.route("/", methods=["GET"])
 @app.route("/home", methods=["GET"])
+@app.route("/home")
+
 def home():
     user = get_current_user()
     if not user:
         return redirect(url_for("login"))
-    
-    # Mock deck data for presentation
-    decks_data = [
-        {
-            "id": 1,
-            "name": "Biology Basics",
-            "cards": 3,
-            "mastery": 100
-        },
-        {
-            "id": 2,
-            "name": "Spanish Vocabulary",
-            "cards": 5,
-            "mastery": 40
-        },
-        {
-            "id": 3,
-            "name": "Data Structures",
-            "cards": 15,
-            "mastery": 85
-        }
-    ]
-    
-    # Try to get real decks if database is working
+
+    # use the module‐level decks_data!
+    global decks_data
+
+    # (optional) merge in real DB decks if you like:
     try:
         real_decks = Deck.query.all()
         if real_decks:
-            decks_data = []
-            for d in real_decks:
-                decks_data.append({
-                    "id": d.id,
-                    "name": d.name,
-                    "cards": len(d.cards) if d.cards else 0,
-                    "mastery": 75  # Default mastery
-                })
+            decks_data = [{
+                "id": d.id,
+                "name": d.name,
+                "cards": len(d.cards) if d.cards else 0,
+                "mastery": 75
+            } for d in real_decks]
     except:
         pass
-    
-    return render_template("home.html", user=user.email, decks=decks_data)
+
+    return render_template("home.html", decks=decks_data, user=user.email)
 
 @app.route("/cards/new", methods=["GET", "POST"])
-def create_card():
+def create_card_global():
     user = get_current_user()
     if not user:
         return redirect(url_for("login"))
@@ -188,6 +176,22 @@ def create_card():
         return redirect(url_for("home"))
 
     return render_template("create_card.html", form=form)
+    
+@app.route("/deck/<int:deck_id>/create_card", methods=["GET", "POST"])
+def create_card_for_deck(deck_id):
+    deck = Deck.query.get_or_404(deck_id)   # or from your in-memory `decks` list
+    form = CreateCardForm()
+    if form.validate_on_submit():
+        # save a new card against this deck…
+        return redirect(url_for("study", deck_id=deck_id))
+
+    # GET or failed POST:
+    return render_template(
+        "create_card.html",
+        form=form,
+        deck=deck,                # ← pass it here
+        cards=deck.cards          # if your template needs the list
+    )
 
 @app.route("/decks/<int:deck_id>/study", methods=["GET"])
 def study_deck(deck_id):
@@ -348,6 +352,37 @@ def study_deck(deck_id):
         ]
     
     return render_template("study.html", deck=deck, cards=cards)
+
+@app.route('/createdeck', methods=['GET', 'POST'])
+def create_deck():
+    'Card deck page'
+    global decks_data
+
+    if request.method == "POST":
+        term = request.form.get("term", "").strip()
+        definition = request.form.get("definition", "").strip()
+
+        if not term or not definition:
+            flash("Both term and definition are required.", "error")
+            return render_template("create_deck.html",
+                                   term=term,
+                                   definition=definition)
+
+        # assign a new id
+        new_id = max(d["id"] for d in decks_data) + 1 if decks_data else 1
+
+        decks_data.append({
+            "id":       new_id,
+            "name":     term,
+            "cards":    0,
+            "mastery":  0,
+            "category": ""
+        })
+        flash(f"Created deck '{term}'", "success")
+        return redirect(url_for("home"))
+
+    # GET
+    return render_template("create_deck.html")
 
 # API endpoint for adding cards via AJAX
 @app.route("/api/cards/create", methods=["POST"])
