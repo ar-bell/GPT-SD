@@ -21,9 +21,9 @@
             <h3 class="deck-title">{{ deck.name }}</h3>
             <div class="deck-stats">
                 <div class="stat">
-                    <span class="stat-value">{{ deck.cards }}</span>
+                    <span class="stat-value">{{ deck.cards|length }}</span>
                     <span class="stat-label">Cards</span>
-                </div>
+                  </div>
                 <div class="stat">
                     <span class="stat-value">{{ deck.mastery }}%</span>
                     <span class="stat-label">Mastery</span>
@@ -36,6 +36,11 @@
                 <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); alert('Quiz mode coming soon!')">
                     Quiz
                 </button>
+                <!-- ← NEW: Add Card button -->
+                <a href="{{ url_for('create_card_global') }}?deck_id={{ deck.id }}"
+                    class="btn btn-outline-primary btn-small">
+                    + Add Card
+   </a>
             </div>
         </div>
         {% endfor %}

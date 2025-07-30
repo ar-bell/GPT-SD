@@ -1,146 +1,38 @@
-
+{# templates/create_card.html #}
 {% extends "base.html" %}
-{% block title %}GPT.SD - My Decks {% endblock %}
+{% block title %}Add New Card{% endblock %}
 
 {% block content %}
-<div class="container active">
-    <div class="deck-header">
-        <div>
-            <h2>{{ deck.name }}</h2>
-            <p class="text-secondary">{{ deck.description or 'No description' }}</p>
-        </div>
-        <div class="deck-header-actions">
-            <button class="btn btn-primary" onclick="startStudy()">Study All</button>
-            <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Decks</a>
-        </div>
-    </div>
+<div class="container active auth-container" style="min-height:100vh; display:flex; justify-content:center; align-items:center;">
+  <div class="auth-card" style="max-width:500px; width:100%; padding:2rem;">
+    <h2 class="mb-4">Add New Card</h2>
 
-    <div class="card-list">
-        <div class="card-list-header">
-            <h3>Cards ({{ deck.card_count }})</h3>
-            <button class="btn btn-primary btn-small" onclick="showAddCardModal()">+ Add Card</button>
-        </div>
-        
-        {% if deck.cards %}
-            <div class="cards-grid">
-                {% for card in deck.cards %}
-                <div class="card-item">
-                    <div class="card-term">{{ card.term }}</div>
-                    <div class="card-definition">{{ card.definition[:100] }}{% if card.definition|length > 100 %}...{% endif %}</div>
-                    {% if card.image_url %}
-                        <img src="{{ card.image_url }}" alt="{{ card.term }}" class="card-thumbnail">
-                    {% endif %}
-                    <div class="card-mastery">
-                        <span class="mastery-label">Mastery:</span>
-                        <div class="mastery-bar">
-                            <div class="mastery-fill" style="width: {{ (card.mastery_level / 5 * 100) }}%"></div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div class="empty-state">
-                <p>No cards yet. Add your first card to get started!</p>
-            </div>
-        {% endif %}
-    </div>
+    <form method="POST" action="{{ url_for('create_card_global') }}">
+      {{ form.hidden_tag() }}
+
+      <!-- ⬇ Deck dropdown ⬇ -->
+      <div class="form-group mb-3">
+        {{ form.deck_id.label(class="form-label") }}
+        {{ form.deck_id(class="form-input") }}
+      </div>
+
+      <!-- Term / Question -->
+      <div class="form-group mb-3">
+        {{ form.term.label(class="form-label") }}
+        {{ form.term(class="form-input", placeholder="e.g., Mitochondria") }}
+      </div>
+
+      <!-- Definition / Answer -->
+      <div class="form-group mb-4">
+        {{ form.definition.label(class="form-label") }}
+        {{ form.definition(class="form-input", rows="4", placeholder="e.g., The powerhouse of the cell…") }}
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">Create Card</button>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary flex-fill">Cancel</a>
+      </div>
+    </form>
+  </div>
 </div>
-
-<!-- Add Card Modal -->
-<div class="modal" id="addCardModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2>Add New Card</h2>
-            <button class="close-modal" onclick="hideAddCardModal()">&times;</button>
-        </div>
-        
-        <form id="addCardForm">
-            <div class="form-group">
-                <label class="form-label">Term / Question</label>
-                <input type="text" id="cardTerm" class="form-input" placeholder="e.g., Mitochondria" required>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Definition / Answer</label>
-                <textarea id="cardDefinition" class="form-textarea form-input" rows="4" 
-                          placeholder="e.g., The powerhouse of the cell..." required></textarea>
-            </div>
-            
-            <div class="alert alert-info">
-                <p><strong>AI Image Generation:</strong> An educational image will be automatically generated based on your term and definition!</p>
-            </div>
-            
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="hideAddCardModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <span id="addCardBtnText">Create Card</span>
-                    <span id="addCardLoading" style="display: none;">Creating...</span>
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-const deckId = {{ deck.id }};
-
-function showAddCardModal() {
-    document.getElementById('addCardModal').classList.add('active');
-}
-
-function hideAddCardModal() {
-    document.getElementById('addCardModal').classList.remove('active');
-    document.getElementById('addCardForm').reset();
-}
-
-function startStudy() {
-    window.location.href = "{{ url_for('study', deck_id=deck.id) }}";
-}
-
-document.getElementById('addCardForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const term = document.getElementById('cardTerm').value;
-    const definition = document.getElementById('cardDefinition').value;
-    
-    // Show loading state
-    document.getElementById('addCardBtnText').style.display = 'none';
-    document.getElementById('addCardLoading').style.display = 'inline';
-    
-    try {
-        const response = await fetch(`/deck/${deckId}/add-card`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ term, definition })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Reload the page to show the new card
-            window.location.reload();
-        } else {
-            alert('Error creating card. Please try again.');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error creating card. Please try again.');
-    } finally {
-        // Reset button state
-        document.getElementById('addCardBtnText').style.display = 'inline';
-        document.getElementById('addCardLoading').style.display = 'none';
-    }
-});
-
-// Close modal on outside click
-document.getElementById('addCardModal').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) {
-        hideAddCardModal();
-    }
-});
-</script>
-
 {% endblock %}

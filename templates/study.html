@@ -11,6 +11,8 @@
                 <p style="color: var(--text-secondary);">Card <span id="currentCard">1</span> of {{ cards|length }}</p>
             </div>
             <a href="{{ url_for('home') }}" class="btn btn-secondary">Exit Study</a>
+
+            
         </div>
 
         <div class="progress-bar">
@@ -40,11 +42,19 @@
             <button class="control-btn control-btn-prev" onclick="previousCard()">Previous</button>
             <button class="control-btn control-btn-shuffle" onclick="shuffleCards()">Shuffle</button>
             <button class="control-btn control-btn-next" onclick="nextCard()">Next</button>
+
+            {# ← NEW: “Add Card” button #}
+            <a href="{{ url_for('create_card_global') }}?deck_id={{ deck.id }}"
+               class="control-btn control-btn-addcard">
+               + Add Card
+            </a>
         </div>
         {% else %}
         <div class="empty-state">
             <p>No cards in this deck yet!</p>
-            <a href="{{ url_for('create_card') }}" class="btn btn-primary">Create Cards</a>
+            <a href="{{ url_for('create_card_global', deck_id=deck.id) }}" 
+            class="btn btn-primary">
+            + Add Card</a>
         </div>
         {% endif %}
     </div>
@@ -176,9 +186,20 @@
     color: white;
 }
 
+.control-btn-addcard {
+    font-size: 0.9rem;
+  color: var(--text-secondary);      /* your muted text variable */
+  text-decoration: none;
+  margin-left: 1rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  align-self: center; 
+
+}
+
 .control-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 20px rgba(239, 235, 235, 0.2);
 }
 
 .empty-state {
