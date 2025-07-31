@@ -6,9 +6,9 @@
 <div class="container active" id="homeScreen">
     <div class="home-header">
         <div class="user-info">
-            <div class="avatar">{{ user[0].upper() }}</div>
+            <div class="avatar">{{ user.name[0].upper() if user.name else user.email[0].upper() }}</div>
             <div class="user-details">
-                <h2>Welcome back!</h2>
+                <h2>Welcome back, {{ user.name.split()[0] if user.name else user.email.split('@')[0] }}!</h2>
                 <p>Ready to learn something new today?</p>
             </div>
         </div>
@@ -21,7 +21,7 @@
             <h3 class="deck-title">{{ deck.name }}</h3>
             <div class="deck-stats">
                 <div class="stat">
-                    <span class="stat-value">{{ deck.cards|length }}</span>
+                    <span class="stat-value">{{ deck.card_count }}</span>
                     <span class="stat-label">Cards</span>
                   </div>
                 <div class="stat">

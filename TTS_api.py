@@ -4,14 +4,15 @@ from ibm_cloud_sdk_core.authenticators import IAMAuthenticator
 import os, io
 app = Flask(__name__)
 
-API_KEY = os.getenv("IBM_TTS_APIKEY")
+API_KEY = os.getenv("IBM_TTS_API_KEY")
 SERVICE_URL = os.getenv("IBM_TTS_URL")
 if not (API_KEY and SERVICE_URL):
-    raise RuntimeError("Set IBM_TTS_APIKEY and IBM_TTS_URL env variables")
+    raise RuntimeError("Set IBM_TTS_API_KEY and IBM_TTS_URL env variables")
 
 authenticator = IAMAuthenticator(API_KEY)
 tts = TextToSpeechV1(authenticator=authenticator)
 tts.set_service_url(SERVICE_URL)
+
 
 @app.route("/synthesize", methods=["POST"])
 def synthesize():
