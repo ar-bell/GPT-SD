@@ -273,6 +273,18 @@ def create_deck():
     # GET
     return render_template("create_deck.html")
 
+@app.route("/api/decks/<int:deck_id>", methods=["DELETE"])
+def api_delete_deck(deck_id):
+    # If real DB: Deck.query.filter_by(id=deck_id).delete(); db.session.commit()
+    global decks_data
+    before = len(decks_data)
+    decks_data = [d for d in decks_data if d["id"] != deck_id]
+    if len(decks_data) == before:
+        return ("Not found", 404)
+    return ("", 204)
+
+
+
 # API endpoint for adding cards via AJAX
 @app.route("/api/cards/create", methods=["POST"])
 def api_create_card():
