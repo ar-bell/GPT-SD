@@ -130,22 +130,28 @@
 }
 
 .btn {
-    padding: 14px 28px;
-    font-size: 1rem;
+    padding: 8px 20px;
+    font-size: 0.9rem;
     font-weight: 600;
     border-radius: 12px;
     border: none;
     cursor: pointer;
     text-decoration: none;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
+    line-height: 1;
     transition: all 0.3s ease;
+    box-sizing: border-box;
+    height: 40px;
 }
 
 .btn-primary {
     background: var(--primary);
     color: white;
     flex: 1;
+    max-width: calc(50% - 8px);
 }
 
 .btn-primary:hover {
@@ -157,7 +163,8 @@
 .btn-secondary {
     background: var(--surface-light);
     color: var(--text-primary);
-    flex: 0 0 auto;
+    flex: 1;
+    max-width: calc(50% - 8px);
 }
 
 .btn-secondary:hover {

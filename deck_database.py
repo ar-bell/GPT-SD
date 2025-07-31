@@ -49,14 +49,22 @@ class Deck(db.Model):
         """Get the number of cards in this deck"""
         return self.cards.count()
 
-    @property
-    def mastery_percentage(self):
-        """Calculate mastery percentage (placeholder for future study tracking)"""
-        # For now, return a random-ish value based on deck properties
-        # In the future, this could be based on user study progress
-        return min(100, max(0, (self.card_count * 15) % 100))
+    def mastery_percentage(self, user_id):
+        """Calculate mastery percentage based on user's study progress"""
+        if self.card_count == 0:
+            return 0
+        
+        # Count how many cards in this deck the user has studied
+        studied_cards = StudyProgress.query.filter_by(
+            user_id=user_id,
+            deck_id=self.id
+        ).count()
+        
+        # Calculate percentage
+        percentage = int((studied_cards / self.card_count) * 100)
+        return min(100, max(0, percentage))
 
-    def to_dict(self):
+    def to_dict(self, user_id=None):
         """Convert deck to dictionary for JSON serialization"""
         return {
             'id': self.id,
@@ -64,7 +72,7 @@ class Deck(db.Model):
             'description': self.description,
             'category': self.category,
             'card_count': self.card_count,
-            'mastery': self.mastery_percentage,
+            'mastery': self.mastery_percentage(user_id) if user_id else 0,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
@@ -98,5 +106,24 @@ class Card(db.Model):
 
     def __repr__(self):
         return f'<Card {self.term}>'
+
+class StudyProgress(db.Model):
+    __tablename__ = "study_progress"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    card_id = db.Column(db.Integer, db.ForeignKey("cards.id"), nullable=False)
+    deck_id = db.Column(db.Integer, db.ForeignKey("decks.id"), nullable=False)
+    studied_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    user = db.relationship("User")
+    card = db.relationship("Card")
+    deck = db.relationship("Deck")
+    
+    # Unique constraint to prevent duplicate progress entries
+    __table_args__ = (db.UniqueConstraint('user_id', 'card_id', name='unique_user_card_progress'),)
+    
+    def __repr__(self):
+        return f'<StudyProgress user_id={self.user_id} card_id={self.card_id}>'
 
 

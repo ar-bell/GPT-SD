@@ -12,13 +12,12 @@
                 <p>Ready to learn something new today?</p>
             </div>
         </div>
-        <a href="{{ url_for('logout') }}" class="btn btn-primary btn-small">Sign Out</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-primary btn-small sign-out-btn">Sign Out</a>
     </div>
 
     <div class="deck-grid">
         {% for deck in decks %}
-        <div class="deck-card" data-deck-id="{{ deck.id }}"
-+           onclick="window.location.href='{{ url_for('study_deck', deck_id=deck.id) }}'">
+        <div class="deck-card" data-deck-id="{{ deck.id }}" onclick="window.location.href='{{ url_for('study_deck', deck_id=deck.id) }}'">
             <h3 class="deck-title">{{ deck.name }}</h3>
             <div class="deck-stats">
                 <div class="stat">
@@ -34,27 +33,22 @@
                 <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); window.location.href='{{ url_for('study_deck', deck_id=deck.id) }}'">
                     Study
                 </button>
-                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); alert('Quiz mode coming soon!')">
+                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); window.location.href='{{ url_for('quiz_deck', deck_id=deck.id) }}'">
                     Quiz
                 </button>
-<<<<<<< Updated upstream
-                <!-- ← NEW: Add Card button -->
                 <a href="{{ url_for('create_card_global') }}?deck_id={{ deck.id }}"
                     class="btn btn-outline-primary btn-small">
                     + Add Card
-   </a>
-=======
+                </a>
                 <button
                     class="btn delete-deck-btn delete-btn"
                     onclick="event.stopPropagation(); confirmDeleteDeck({{ deck.id }}, '{{ deck.name }}')"
                     title="Delete {{ deck.name }}"
                         >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
-                          <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+                          <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
                         </svg>
                 </button>
-               
->>>>>>> Stashed changes
             </div>
         </div>
         {% endfor %}
@@ -70,25 +64,22 @@
     </div>
 </div>
 
-
 <script>
-    /* Deleting Deck */
-    async function confirmDeleteDeck(id, name) {
-      if (!confirm(`Delete deck “${name}”? This cannot be undone.`)) return;
-  
-      try {
-        let resp = await fetch(`/api/decks/${id}`, {
-          method: 'DELETE',
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        // remove the card from the DOM
-        document.querySelector(`.deck-card[data-deck-id="${id}"]`).remove();
-      } catch (err) {
-        alert("Couldn’t delete deck: " + err.message);
-      }
-    }
-  </script>
-  
+async function confirmDeleteDeck(id, name) {
+  if (!confirm(`Delete deck "${name}"? This cannot be undone.`)) return;
+
+  try {
+    let resp = await fetch(`/api/decks/${id}`, {
+      method: 'DELETE',
+    });
+    if (!resp.ok) throw new Error(await resp.text());
+    document.querySelector(`.deck-card[data-deck-id="${id}"]`).remove();
+  } catch (err) {
+    alert("Couldn't delete deck: " + err.message);
+  }
+}
+</script>
+
 <style>
 
 /* Quick inline styles for presentation */
@@ -157,14 +148,16 @@
 
 .deck-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
 }
 
 .btn-small {
-    padding: 8px 20px;
+    padding: 8px 16px;
     font-size: 0.875rem;
     margin-bottom: 0;
-    width: auto;
+    flex: 1;
+    min-width: 70px;
 }
 
 .create-deck {
@@ -222,19 +215,25 @@
 }
 
 .delete-deck-btn {
-  background: rgba(255,255,255,0.1);   /* semi-opaque grey puck */
+  background: rgba(255,255,255,0.1);
   border: none;
-  border-radius: 8px;                  /* soften into a pill/square */
-  padding: 0.5rem;                     /* give some breathing room */
-  font-size: 1.2rem;                   /* size of the icon */
-  color: white;                        /* icon color */
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);/* subtle shading */
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
   transition: background 0.2s ease, box-shadow 0.2s ease;
-  margin-left: auto;                   /* push it right in flex */
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  min-width: 80px;
 }
 
+.sign-out-btn {
+  padding: 8px 12px;
+  min-width: 60px;
+  flex: 0 0 auto;
+}
 </style>
 {% endblock %}
