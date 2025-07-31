@@ -9,6 +9,15 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <header class="app-header">
+        <div class="header-container">
+            <div class="logo">
+                <h1>GPT.SD</h1>
+                <span class="tagline">Learn it all, one card at a time</span>
+            </div>
+        </div>
+    </header>
+    
     {% block content %}{% endblock %}
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 

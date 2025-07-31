@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block title %}GPT.SD - Quiz Mode{% endblock %}
+
+{% block content %}
+<div class="container active" id="quizScreen">
+    <div class="study-container">
+        <div class="study-header">
+            <div>
+                <h2>{{ deck.name if deck.name else 'Quiz Session' }}</h2>
+                <p style="color: var(--text-secondary);">Question <span id="currentCard">1</span> of {{ cards|length }}</p>
+            </div>
+            <a href="{{ url_for('home') }}" class="btn btn-secondary">Exit Quiz</a>
+        </div>
+
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: {{ (100 / cards|length) if cards else 0 }}%"></div>
+        </div>
+
+        {% if cards %}
+        <div class="flashcard quiz-mode" id="flashcard">
+            <div class="flashcard-face" id="front">
+              {% if cards[0].image_url %}
+                <img src="{{ cards[0].image_url }}" alt="Quiz image" class="flashcard-image">
+              {% endif %}
+              <div class="flashcard-content">
+                <h3>What term does this image represent?</h3>
+                
+                <div class="quiz-input-container">
+                    <input type="text" id="userAnswer" class="quiz-input" placeholder="Type your answer here..." autocomplete="off">
+                    <button id="submitAnswer" class="btn btn-primary quiz-submit-btn">Submit</button>
+                </div>
+                
+                <div id="quizFeedback" class="quiz-feedback" style="display: none;">
+                    <div id="feedbackMessage"></div>
+                    <div id="correctAnswer" class="correct-answer"></div>
+                </div>
+              </div>
+            </div>
+        </div>
+
+        <div class="quiz-controls">
+            <button id="prevBtn" class="btn btn-secondary" onclick="previousCard()" disabled>Previous</button>
+            <button id="nextBtn" class="btn btn-primary" onclick="nextCard()" style="display: none;">Next</button>
+            <button id="finishBtn" class="btn btn-success" onclick="finishQuiz()" style="display: none;">Finish Quiz</button>
+        </div>
+
+        <div id="quizResults" class="quiz-results" style="display: none;">
+            <h3>Quiz Complete!</h3>
+            <div class="results-summary">
+                <div class="score-display">
+                    <span id="finalScore">0</span> / {{ cards|length }}
+                </div>
+                <p id="scorePercentage">0%</p>
+            </div>
+            <div class="results-actions">
+                <button class="btn btn-primary" onclick="restartQuiz()">Retake Quiz</button>
+                <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Decks</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="no-cards">
+            <h3>No cards in this deck</h3>
+            <p>Add some cards to start your quiz!</p>
+            <a href="{{ url_for('home') }}" class="btn btn-primary">Back to Decks</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Quiz data and state
+const cards = {{ cards | tojson }};
+let currentCardIndex = 0;
+let score = 0;
+let answers = [];
+
+// Initialize quiz
+document.addEventListener('DOMContentLoaded', function() {
+    if (cards.length > 0) {
+        loadCard(0);
+        setupEventListeners();
+    }
+});
+
+function setupEventListeners() {
+    const submitBtn = document.getElementById('submitAnswer');
+    const userInput = document.getElementById('userAnswer');
+    
+    submitBtn.addEventListener('click', submitAnswer);
+    userInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            submitAnswer();
+        }
+    });
+}
+
+function loadCard(index) {
+    if (index >= cards.length) return;
+    
+    const card = cards[index];
+    const flashcard = document.getElementById('flashcard');
+    const front = document.getElementById('front');
+    
+    // Update image
+    const img = front.querySelector('.flashcard-image');
+    if (img && card.image_url) {
+        img.src = card.image_url;
+        img.alt = 'Quiz image';
+    }
+    
+    // Reset input and feedback
+    document.getElementById('userAnswer').value = '';
+    document.getElementById('userAnswer').disabled = false;
+    document.getElementById('submitAnswer').style.display = 'inline-block';
+    document.getElementById('quizFeedback').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+    document.getElementById('finishBtn').style.display = 'none';
+    
+    // Update progress
+    document.getElementById('currentCard').textContent = index + 1;
+    const progressFill = document.querySelector('.progress-fill');
+    progressFill.style.width = ((index + 1) / cards.length * 100) + '%';
+    
+    // Update navigation buttons
+    document.getElementById('prevBtn').disabled = index === 0;
+}
+
+function submitAnswer() {
+    const userAnswer = document.getElementById('userAnswer').value.trim();
+    if (!userAnswer) return;
+    
+    const correctAnswer = cards[currentCardIndex].term;
+    const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+    
+    // Store answer
+    answers[currentCardIndex] = {
+        user: userAnswer,
+        correct: correctAnswer,
+        isCorrect: isCorrect
+    };
+    
+    if (isCorrect) {
+        score++;
+        // Mark card as studied when answered correctly
+        markCardAsStudied(cards[currentCardIndex].id);
+    }
+    
+    // Show feedback
+    showFeedback(isCorrect, correctAnswer);
+    
+    // Disable input and hide submit button
+    document.getElementById('userAnswer').disabled = true;
+    document.getElementById('submitAnswer').style.display = 'none';
+    
+    // Show next/finish button
+    if (currentCardIndex < cards.length - 1) {
+        document.getElementById('nextBtn').style.display = 'inline-block';
+    } else {
+        document.getElementById('finishBtn').style.display = 'inline-block';
+    }
+}
+
+function showFeedback(isCorrect, correctAnswer) {
+    const feedback = document.getElementById('quizFeedback');
+    const message = document.getElementById('feedbackMessage');
+    const answerDiv = document.getElementById('correctAnswer');
+    
+    if (isCorrect) {
+        message.textContent = '✅ Correct!';
+        message.className = 'feedback-correct';
+        answerDiv.textContent = '';
+    } else {
+        message.textContent = '❌ Incorrect';
+        message.className = 'feedback-incorrect';
+        answerDiv.textContent = `Correct answer: ${correctAnswer}`;
+    }
+    
+    feedback.style.display = 'block';
+}
+
+function nextCard() {
+    if (currentCardIndex < cards.length - 1) {
+        currentCardIndex++;
+        loadCard(currentCardIndex);
+    }
+}
+
+function previousCard() {
+    if (currentCardIndex > 0) {
+        currentCardIndex--;
+        loadCard(currentCardIndex);
+        
+        // If this card was already answered, show the feedback
+        if (answers[currentCardIndex]) {
+            const answer = answers[currentCardIndex];
+            showFeedback(answer.isCorrect, answer.correct);
+            document.getElementById('userAnswer').value = answer.user;
+            document.getElementById('userAnswer').disabled = true;
+            document.getElementById('submitAnswer').style.display = 'none';
+            
+            if (currentCardIndex < cards.length - 1) {
+                document.getElementById('nextBtn').style.display = 'inline-block';
+            } else {
+                document.getElementById('finishBtn').style.display = 'inline-block';
+            }
+        }
+    }
+}
+
+function finishQuiz() {
+    // Hide quiz interface
+    document.getElementById('flashcard').style.display = 'none';
+    document.querySelector('.quiz-controls').style.display = 'none';
+    
+    // Show results
+    const results = document.getElementById('quizResults');
+    const finalScore = document.getElementById('finalScore');
+    const percentage = document.getElementById('scorePercentage');
+    
+    finalScore.textContent = score;
+    const percent = Math.round((score / cards.length) * 100);
+    percentage.textContent = percent + '% correct';
+    
+    results.style.display = 'block';
+}
+
+function restartQuiz() {
+    // Reset state
+    currentCardIndex = 0;
+    score = 0;
+    answers = [];
+    
+    // Show quiz interface
+    document.getElementById('flashcard').style.display = 'block';
+    document.querySelector('.quiz-controls').style.display = 'flex';
+    document.getElementById('quizResults').style.display = 'none';
+    
+    // Load first card
+    loadCard(0);
+}
+
+async function markCardAsStudied(cardId) {
+    try {
+        await fetch(`/api/cards/${cardId}/study`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (error) {
+        console.error('Failed to mark card as studied:', error);
+    }
+}
+</script>
+
+<style>
+.quiz-mode {
+    cursor: default;
+}
+
+.quiz-input-container {
+    margin: 30px 0;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.quiz-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid var(--surface-light);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--surface-light);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.quiz-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: white;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.quiz-submit-btn {
+    padding: 12px 24px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.quiz-feedback {
+    margin-top: 20px;
+    padding: 16px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.feedback-correct {
+    color: #059669;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.feedback-incorrect {
+    color: #dc2626;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.correct-answer {
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.quiz-controls {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 30px;
+    gap: 16px;
+}
+
+.quiz-results {
+    text-align: center;
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 40px;
+    margin-top: 20px;
+}
+
+.results-summary {
+    margin: 30px 0;
+}
+
+.score-display {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.results-actions {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.no-cards {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-secondary);
+}
+
+.no-cards h3 {
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+</style>
+{% endblock %}

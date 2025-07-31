@@ -12,7 +12,7 @@ from wtforms import (
     SelectField, TextAreaField
 )
 from wtforms.validators import DataRequired, Email, EqualTo, Length
-from deck_database import db, User, Deck, Card
+from deck_database import db, User, Deck, Card, StudyProgress
 import requests
 import json
 import io
@@ -286,7 +286,7 @@ def index():
 def home():
     # Get user's decks from database
     decks = current_user.decks.all()
-    deck_data = [deck.to_dict() for deck in decks]
+    deck_data = [deck.to_dict(current_user.id) for deck in decks]
     return render_template("home.html", decks=deck_data, user=current_user)
 
 
@@ -397,7 +397,33 @@ def study_deck(deck_id):
                 db.session.rollback()
         cards_data.append(card_dict)
     
-    return render_template("study.html", deck=deck.to_dict(), cards=cards_data)
+    return render_template("study.html", deck=deck.to_dict(current_user.id), cards=cards_data)
+
+@app.route("/decks/<int:deck_id>/quiz", methods=["GET"])
+@login_required
+def quiz_deck(deck_id):
+    # Get the deck and verify ownership
+    deck = Deck.query.filter_by(id=deck_id, owner_id=current_user.id).first_or_404()
+    
+    # Get all cards for this deck
+    cards = deck.cards.all()
+    
+    # Convert cards to dict format for the template
+    cards_data = []
+    for card in cards:
+        card_dict = card.to_dict()
+        # Generate image if not present
+        if not card_dict['image_url']:
+            card_dict['image_url'] = generate_image_for_term(card.term, card.definition)
+            # Update the database with the generated image
+            card.image_url = card_dict['image_url']
+            try:
+                db.session.commit()
+            except:
+                db.session.rollback()
+        cards_data.append(card_dict)
+    
+    return render_template("quiz.html", deck=deck.to_dict(current_user.id), cards=cards_data)
 
 @app.route('/decks/new', methods=['GET', 'POST'])
 @login_required
@@ -472,7 +498,39 @@ def api_delete_deck(deck_id):
         db.session.rollback()
         return ("Server error", 500)
 
-
+@app.route("/api/cards/<int:card_id>/study", methods=["POST"])
+@login_required
+def mark_card_studied(card_id):
+    # Get the card and verify it belongs to the current user's deck
+    card = Card.query.join(Deck).filter(
+        Card.id == card_id,
+        Deck.owner_id == current_user.id
+    ).first()
+    
+    if not card:
+        return ("Card not found", 404)
+    
+    try:
+        # Check if progress already exists
+        existing_progress = StudyProgress.query.filter_by(
+            user_id=current_user.id,
+            card_id=card_id
+        ).first()
+        
+        if not existing_progress:
+            # Create new study progress entry
+            progress = StudyProgress(
+                user_id=current_user.id,
+                card_id=card_id,
+                deck_id=card.deck_id
+            )
+            db.session.add(progress)
+            db.session.commit()
+        
+        return ("", 204)
+    except Exception as e:
+        db.session.rollback()
+        return ("Server error", 500)
 
 # API endpoint for adding cards via AJAX
 @app.route("/api/cards/create", methods=["POST"])

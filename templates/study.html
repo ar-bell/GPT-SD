@@ -343,6 +343,22 @@ function updateCard() {
     // Reset flip
     document.getElementById('flashcard').classList.remove('flipped');
     isFlipped = false;
+    
+    // Mark card as studied
+    markCardAsStudied(card.id);
+}
+
+async function markCardAsStudied(cardId) {
+    try {
+        await fetch(`/api/cards/${cardId}/study`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+    } catch (error) {
+        console.error('Failed to mark card as studied:', error);
+    }
 }
 
 function flipCard() {
