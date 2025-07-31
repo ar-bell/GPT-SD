@@ -1,0 +1,65 @@
+<!-- templates/login.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPT.SD - Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container active" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="logo">
+                    <h1>GPT.SD</h1>
+                    <p>Learn it all, one card at a time</p>
+                    <p style="font-size: 0.8rem; margin-top: 10px; color: var(--text-muted);">AI-Powered Visual Flashcards</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <form method="POST">
+                    {{ form.hidden_tag() }}
+                    <div class="form-group">
+                        {{ form.email.label(class="form-label") }}
+                        {{ form.email(class="form-input", placeholder="Enter your email", value="test@example.com") }}
+                    </div>
+                    
+                    <div class="form-group">
+                        {{ form.password.label(class="form-label") }}
+                        {{ form.password(class="form-input", placeholder="Enter your password", value="password123") }}
+                    </div>
+                    
+                    {{ form.submit(class="btn btn-primary") }}
+                </form>
+                
+                <div style="margin-top: 30px; padding: 20px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1)); border-radius: 12px; border: 1px solid rgba(99, 102, 241, 0.2);">
+                    <p style="text-align: center; color: var(--text-primary); font-weight: 600; margin-bottom: 10px;">
+                        🚀 Demo Credentials
+                    </p>
+                    <p style="text-align: center; color: var(--text-secondary); font-size: 0.9rem;">
+                        Email: <code style="background: var(--surface-light); padding: 2px 6px; border-radius: 4px;">test@example.com</code><br>
+                        Password: <code style="background: var(--surface-light); padding: 2px 6px; border-radius: 4px;">password123</code>
+                    </p>
+                    <p style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 10px;">
+                        AI image generation powered by Google Gemini
+                    </p>
+                </div>
+                
+                <div style="text-align: center; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--surface-light);">
+                    <p style="color: var(--text-secondary); margin: 0;">
+                        Don't have an account? <a href="{{ url_for('register') }}" style="color: var(--primary); text-decoration: none; font-weight: 500;">Register here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

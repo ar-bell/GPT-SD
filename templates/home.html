@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}GPT.SD - My Decks{% endblock %}
+
+{% block content %}
+<div class="container active" id="homeScreen">
+    <div class="home-header">
+        <div class="user-info">
+            <div class="avatar">{{ user.name[0].upper() if user.name else user.email[0].upper() }}</div>
+            <div class="user-details">
+                <h2>Welcome back, {{ user.name.split()[0] if user.name else user.email.split('@')[0] }}!</h2>
+                <p>Ready to learn something new today?</p>
+            </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="btn btn-primary btn-small">Sign Out</a>
+    </div>
+
+    <div class="deck-grid">
+        {% for deck in decks %}
+        <div class="deck-card" onclick="window.location.href='{{ url_for('study_deck', deck_id=deck.id) }}'">
+            <h3 class="deck-title">{{ deck.name }}</h3>
+            <div class="deck-stats">
+                <div class="stat">
+                    <span class="stat-value">{{ deck.card_count }}</span>
+                    <span class="stat-label">Cards</span>
+                  </div>
+                <div class="stat">
+                    <span class="stat-value">{{ deck.mastery }}%</span>
+                    <span class="stat-label">Mastery</span>
+                </div>
+            </div>
+            <div class="deck-actions">
+                <button class="btn btn-primary btn-small" onclick="event.stopPropagation(); window.location.href='{{ url_for('study_deck', deck_id=deck.id) }}'">
+                    Study
+                </button>
+                <button class="btn btn-secondary btn-small" onclick="event.stopPropagation(); alert('Quiz mode coming soon!')">
+                    Quiz
+                </button>
+                <!-- ← NEW: Add Card button -->
+                <a href="{{ url_for('create_card_global') }}?deck_id={{ deck.id }}"
+                    class="btn btn-outline-primary btn-small">
+                    + Add Card
+   </a>
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Create New Deck Card -->
+        <div class="deck-card create-deck" data-toggle="modal" data-target="#createDeckModal" style="cursor: pointer;">
+            <div class="create-deck-content">
+                <div class="create-deck-icon" onclick="event.stopPropagation(); window.location.href='{{ url_for('create_deck') }}'">+</div>
+                <h3>Create New Deck</h3>
+                <p style="color: var(--text-secondary); margin-top: 8px;">Start building your knowledge</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Quick inline styles for presentation */
+.deck-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-top: 30px;
+}
+
+.deck-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.deck-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.deck-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 30px 40px -10px rgba(0, 0, 0, 0.3);
+}
+
+.deck-card:hover::before {
+    transform: scaleX(1);
+}
+
+.deck-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+.deck-stats {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 24px;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    display: block;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.deck-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-small {
+    padding: 8px 20px;
+    font-size: 0.875rem;
+    margin-bottom: 0;
+    width: auto;
+}
+
+.create-deck {
+    border: 2px dashed var(--surface-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+}
+
+.create-deck:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.create-deck-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    background: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 2rem;
+    color: white;
+}
+
+.home-header {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: var(--gradient);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: white;
+}
+</style>
+{% endblock %}
