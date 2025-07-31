@@ -1,4 +1,5 @@
 import os
+from flask import current_app
 from dotenv import load_dotenv
 from flask import (
     Flask, render_template, redirect, url_for,
@@ -513,5 +514,8 @@ def api_create_card():
 
 if __name__ == "__main__":
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except:
+            pass
     app.run(debug=True, host="0.0.0.0", port=8000)

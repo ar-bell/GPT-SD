@@ -1,0 +1,38 @@
+{# templates/create_card.html #}
+{% extends "base.html" %}
+{% block title %}Add New Card{% endblock %}
+
+{% block content %}
+<div class="container active auth-container" style="min-height:100vh; display:flex; justify-content:center; align-items:center;">
+  <div class="auth-card" style="max-width:500px; width:100%; padding:2rem;">
+    <h2 class="mb-4">Add New Card</h2>
+
+    <form method="POST" action="{{ url_for('create_card_global') }}">
+      {{ form.hidden_tag() }}
+
+      <!-- ⬇ Deck dropdown ⬇ -->
+      <div class="form-group mb-3">
+        {{ form.deck_id.label(class="form-label") }}
+        {{ form.deck_id(class="form-input") }}
+      </div>
+
+      <!-- Term / Question -->
+      <div class="form-group mb-3">
+        {{ form.term.label(class="form-label") }}
+        {{ form.term(class="form-input", placeholder="e.g., Mitochondria") }}
+      </div>
+
+      <!-- Definition / Answer -->
+      <div class="form-group mb-4">
+        {{ form.definition.label(class="form-label") }}
+        {{ form.definition(class="form-input", rows="4", placeholder="e.g., The powerhouse of the cell…") }}
+      </div>
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary flex-fill">Create Card</button>
+        <a href="{{ url_for('home') }}" class="btn btn-secondary flex-fill">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
